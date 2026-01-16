@@ -125,7 +125,7 @@ if uploaded_file:
 
 col1, col2 = st.columns([2, 1])
 with col1:
-    lang = st.selectbox("Tarjima tili:", ["🎓„ Original", "🇺🇿 O'zbek", "🇷🇺 Rus", "🇬🇧 Ingliz"])
+    lang = st.selectbox("Tarjima tili:", ["🎓 Original", "🇺🇿 O'zbek", "🇷🇺 Rus", "🇬🇧 Ingliz"])
 with col2:
     st.write("") 
     st.write("") 
@@ -297,6 +297,7 @@ if uploaded_file:
 
             except Exception as e:
                 st.error(f"Xatolik: {e}")
+
 
 
 
