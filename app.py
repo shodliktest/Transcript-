@@ -37,14 +37,17 @@ st.markdown("""
         100% { opacity: 1; transform: translateY(0); }
     }
     
-    h1 {
+        h1 {
         color: #fff !important;
         text-align: center;
         text-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff;
         font-family: sans-serif;
-        margin-top: -60px !important; /* Sahifani yuqoriga ko'tarish */
-        opacity: 0; /* Boshida ko'rinmas */
-        animation: fadeIn 1.5s ease-out 0.5s forwards; /* 0.5 soniya kechikyapti va sekin paydo bo'lyapti */
+        margin-top: -60px !important;
+        opacity: 0;
+        
+        /* --- MANA SHU IKKI QATORNI O'ZGARTIRASIZ --- */
+        font-size: 40px !important;  /* Katta-kichikligi (kichraytirish uchun kamaytiring) */
+        animation: fadeIn 1.5s ease-out 3s forwards; /* Kechroq chiqishi uchun 3s (sekund) qildim */
     }
 
     h2, h3, p {
@@ -294,3 +297,4 @@ if uploaded_file:
 
             except Exception as e:
                 st.error(f"Xatolik: {e}")
+
