@@ -1,0 +1,666 @@
+
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Karaoke Pro - Streamlit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Upload Page Styles */
+        .upload-page {
+            padding: 20px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .upload-page.hidden {
+            display: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-top: 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .headphones {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #0a4d4d, #0a6666);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+        }
+
+        .headphones::before {
+            content: '🎧';
+            font-size: 32px;
+        }
+
+        .neon-title {
+            font-size: 48px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #00ffff;
+            text-shadow: 
+                0 0 10px #00ffff,
+                0 0 20px #00ffff,
+                0 0 30px #00ffff,
+                0 0 40px #00ffff;
+            letter-spacing: 2px;
+        }
+
+        .neon-subtitle {
+            font-size: 42px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #00ffff;
+            text-shadow: 
+                0 0 10px #00ffff,
+                0 0 20px #00ffff,
+                0 0 30px #00ffff;
+            letter-spacing: 2px;
+        }
+
+        .warning {
+            background: rgba(139, 0, 0, 0.3);
+            border: 2px solid #ff0040;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 30px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .warning-icon {
+            font-size: 24px;
+        }
+
+        .warning-text {
+            color: #ff0080;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .upload-section {
+            border: 3px dashed #00ffff;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            margin: 30px 0;
+            background: rgba(0, 255, 255, 0.05);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.3),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        .file-limit {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .browse-btn {
+            background: #000;
+            border: 3px solid #00ffff;
+            color: #00ffff;
+            padding: 18px 60px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.5),
+                inset 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+
+        .browse-btn:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 
+                0 0 30px rgba(0, 255, 255, 0.8),
+                inset 0 0 15px rgba(0, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .language-section {
+            margin: 30px 0;
+        }
+
+        .language-label {
+            color: #999;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .language-select {
+            width: 100%;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            color: #fff;
+            padding: 18px 20px;
+            font-size: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 20px;
+            padding-right: 50px;
+        }
+
+        .start-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #0a4d4d, #0a6666);
+            border: 3px solid #00ffff;
+            color: #00ffff;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 
+                0 0 25px rgba(0, 255, 255, 0.5),
+                inset 0 0 15px rgba(0, 255, 255, 0.2);
+            margin: 30px 0;
+        }
+
+        .start-btn:hover {
+            background: linear-gradient(135deg, #0d6666, #0d8080);
+            box-shadow: 
+                0 0 35px rgba(0, 255, 255, 0.8),
+                inset 0 0 20px rgba(0, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .file-name {
+            color: #00ffff;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .file-name.show {
+            display: block;
+        }
+
+        /* Player Page Styles */
+        .player-page {
+            display: none;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a0033 0%, #4a0080 100%);
+            padding: 0;
+        }
+
+        .player-page.active {
+            display: block;
+        }
+
+        .player-header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-info {
+            flex: 1;
+            margin-left: 15px;
+        }
+
+        .date-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .source-info {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .video-container {
+            width: 100%;
+            max-width: 700px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .video-player {
+            width: 100%;
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        audio {
+            width: 100%;
+            height: 60px;
+        }
+
+        .lyrics-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+
+        .lyrics-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .lyrics-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .lyrics-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.5);
+            border-radius: 10px;
+        }
+
+        .lyric-line {
+            font-size: 20px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            color: #666;
+            transition: all 0.3s ease;
+            padding: 10px 15px;
+            border-radius: 10px;
+        }
+
+        .lyric-line.active {
+            color: #00ffff;
+            font-size: 24px;
+            font-weight: bold;
+            background: rgba(0, 255, 255, 0.1);
+            border-left: 4px solid #00ffff;
+            text-shadow: 
+                0 0 10px rgba(0, 255, 255, 0.8),
+                0 0 20px rgba(0, 255, 255, 0.5),
+                0 0 30px rgba(0, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .bottom-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bottom-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 10px;
+            transition: transform 0.2s;
+        }
+
+        .bottom-btn:active {
+            transform: scale(0.9);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #00ffff;
+            font-size: 18px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading::after {
+            content: '...';
+            animation: pulse 1.5s infinite;
+        }
+
+        @media (max-width: 600px) {
+            .neon-title {
+                font-size: 36px;
+            }
+            
+            .neon-subtitle {
+                font-size: 32px;
+            }
+
+            .browse-btn {
+                padding: 15px 40px;
+                font-size: 16px;
+            }
+
+            .lyric-line {
+                font-size: 18px;
+            }
+
+            .lyric-line.active {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Upload Page -->
+    <div class="upload-page" id="uploadPage">
+        <div class="header">
+            <div class="logo">
+                <div class="headphones"></div>
+                <div>
+                    <div class="neon-title">NEON</div>
+                </div>
+            </div>
+            <div class="neon-subtitle">TRANSCRIPT</div>
+        </div>
+
+        <div class="warning">
+            <span class="warning-icon">⚠️</span>
+            <span class="warning-text">MAKSIMAL 25MB | MP3, WAV</span>
+        </div>
+
+        <div class="upload-section">
+            <div class="file-limit">Limit 200MB per file • MP3, WAV</div>
+            <label for="fileInput" class="browse-btn">Browse files</label>
+            <input type="file" id="fileInput" accept=".mp3,.wav,audio/*" />
+            <div class="file-name" id="fileName"></div>
+        </div>
+
+        <div class="language-section">
+            <div class="language-label">Tarjima tili:</div>
+            <select class="language-select">
+                <option value="original">📄 Original</option>
+                <option value="uzbek">🇺🇿 O'zbek</option>
+                <option value="english">🇬🇧 English</option>
+                <option value="russian">🇷🇺 Русский</option>
+            </select>
+        </div>
+
+        <button class="start-btn" id="startBtn">
+            <span>🚀</span>
+            <span>TAHLILNI BOSHLASH</span>
+        </button>
+
+        <div class="loading" id="loading">Tahlil qilinmoqda</div>
+
+        <div style="text-align: center; color: #666; font-size: 14px; margin-top: 30px;">
+            © Shodlik (Otavaliyev_M)
+        </div>
+    </div>
+
+    <!-- Player Page -->
+    <div class="player-page" id="playerPage">
+        <div class="player-header">
+            <button class="back-btn" id="backBtn">←</button>
+            <div class="header-info">
+                <div class="date-title" id="dateTitle">January 15, 2026</div>
+                <div class="source-info">9:54 | Chrome</div>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn">Fork</button>
+                <button class="action-btn">⋮</button>
+            </div>
+        </div>
+
+        <div class="video-container">
+            <div class="video-player">
+                <audio id="audioPlayer" controls></audio>
+            </div>
+        </div>
+
+        <div class="lyrics-container" id="lyricsContainer">
+            <!-- Lyrics will be dynamically inserted here -->
+        </div>
+
+        <div class="bottom-actions">
+            <button class="bottom-btn">📤</button>
+            <button class="bottom-btn">✏️</button>
+            <button class="bottom-btn" id="likeBtn">♡</button>
+            <button class="bottom-btn" id="deleteBtn">🗑️</button>
+            <button class="bottom-btn">💬</button>
+        </div>
+    </div>
+
+    <script>
+        const uploadPage = document.getElementById('uploadPage');
+        const playerPage = document.getElementById('playerPage');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const startBtn = document.getElementById('startBtn');
+        const loading = document.getElementById('loading');
+        const backBtn = document.getElementById('backBtn');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const lyricsContainer = document.getElementById('lyricsContainer');
+        const likeBtn = document.getElementById('likeBtn');
+        const dateTitle = document.getElementById('dateTitle');
+
+        let currentFile = null;
+
+        // Sample lyrics with timestamps (in seconds)
+        const sampleLyrics = [
+            { time: 0, text: "though, because she broke her leg playing squash and has to walk with" },
+            { time: 5, text: "a stick for a few weeks." },
+            { time: 8, text: "My little sister, Josie, is awful." },
+            { time: 12, text: "She loves school and studying and even homework." },
+            { time: 17, text: "She hates sweets and TV" },
+            { time: 20, text: "and playing outside." },
+            { time: 23, text: "She's always reading books" },
+            { time: 26, text: "and doing her assignments perfectly." },
+            { time: 30, text: "Mom and Dad think she's an angel" },
+            { time: 34, text: "but I know the truth about Josie." },
+            { time: 38, text: "She's sneaky and manipulative" },
+            { time: 42, text: "and always gets me in trouble." },
+            { time: 46, text: "One day I'll prove it to everyone." }
+        ];
+
+        // File input change
+        fileInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                
+                if (fileSizeMB > 25) {
+                    alert('Fayl hajmi 25MB dan oshmasligi kerak!');
+                    this.value = '';
+                    fileName.classList.remove('show');
+                    currentFile = null;
+                    return;
+                }
+                
+                currentFile = file;
+                fileName.textContent = `✅ ${file.name} (${fileSizeMB} MB)`;
+                fileName.classList.add('show');
+            }
+        });
+
+        // Start analysis
+        startBtn.addEventListener('click', function() {
+            if (!currentFile) {
+                alert('Iltimos, avval audio fayl yuklang!');
+                return;
+            }
+            
+            // Show loading
+            loading.classList.add('show');
+            startBtn.disabled = true;
+            
+            // Simulate analysis (2 seconds)
+            setTimeout(() => {
+                loading.classList.remove('show');
+                startBtn.disabled = false;
+                showPlayer();
+            }, 2000);
+        });
+
+        // Show player page
+        function showPlayer() {
+            // Set current date
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            dateTitle.textContent = now.toLocaleDateString('en-US', options);
+            
+            // Load audio file
+            const url = URL.createObjectURL(currentFile);
+            audioPlayer.src = url;
+            
+            // Generate lyrics
+            generateLyrics();
+            
+            // Switch pages
+            uploadPage.classList.add('hidden');
+            playerPage.classList.add('active');
+        }
+
+        // Generate lyrics
+        function generateLyrics() {
+            lyricsContainer.innerHTML = '';
+            
+            sampleLyrics.forEach((lyric, index) => {
+                const div = document.createElement('div');
+                div.className = 'lyric-line';
+                div.dataset.time = lyric.time;
+                div.textContent = lyric.text;
+                lyricsContainer.appendChild(div);
+            });
+        }
+
+        // Audio time update
+        audioPlayer.addEventListener('timeupdate', function() {
+            const currentTime = this.currentTime;
+            const lines = document.querySelectorAll('.lyric-line');
+            
+            lines.forEach((line, index) => {
+                const lineTime = parseFloat(line.dataset.time);
+                const nextLine = lines[index + 1];
+                const nextTime = nextLine ? parseFloat(nextLine.dataset.time) : Infinity;
+                
+                if (currentTime >= lineTime && currentTime < nextTime) {
+                    // Remove active from all
+                    lines.forEach(l => l.classList.remove('active'));
+                    // Add active to current
+                    line.classList.add('active');
+                    // Scroll to view
+                    line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        });
+
+        // Back button
+        backBtn.addEventListener('click', function() {
+            audioPlayer.pause();
+            audioPlayer.src = '';
+            playerPage.classList.remove('active');
+            uploadPage.classList.remove('hidden');
+        });
+
+        // Like button
+        let liked = false;
+        likeBtn.addEventListener('click', function() {
+            liked = !liked;
+            this.textContent = liked ? '❤️' : '♡';
+            this.style.color = liked ? '#ff0080' : '#fff';
+        });
+
+        // Delete button
+        document.getElementById('deleteBtn').addEventListener('click', function() {
+            if (confirm('Haqiqatan ham o\'chirmoqchimisiz?')) {
+                audioPlayer.pause();
+                audioPlayer.src = '';
+                currentFile = null;
+                fileInput.value = '';
+                fileName.classList.remove('show');
+                playerPage.classList.remove('active');
+                uploadPage.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
