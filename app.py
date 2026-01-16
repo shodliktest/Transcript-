@@ -108,13 +108,13 @@ if uploaded_file:
     st.markdown(f"""
     <div style="text-align: center; margin-top: 5px; margin-bottom: 15px; animation: fadeIn 1s;">
         <span style="
-            font-size: 10px; 
+            font-size: 12px; 
             color: #00ff88; 
-            text-shadow: 0 0 7px #00ff88, 0 0 10px #00ff88; 
+            text-shadow: 0 0 7px #00ff88, 0 0 13px #00ff88; 
             font-weight: bold; 
             border: 1px solid #00ff88; 
-            padding: 8px 20px; 
-            border-radius: 40px; 
+            padding: 12px 20px; 
+            border-radius: 35px; 
             background: rgba(0, 255, 136, 0.05);
             box-shadow: 0 0 15px #00ff88 inset;">
             🎵 {uploaded_file.name}
@@ -297,6 +297,7 @@ if uploaded_file:
 
             except Exception as e:
                 st.error(f"Xatolik: {e}")
+
 
 
 
