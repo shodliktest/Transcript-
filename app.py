@@ -1,167 +1,173 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import os
-import json
-import base64
+import os, json, base64, time, pytz
+from datetime import datetime
 from deep_translator import GoogleTranslator
 from groq import Groq
 
-# 1. Sozlamalar va Dizaynni yashirish
-st.set_page_config(page_title="Neon Karaoke", layout="wide", initial_sidebar_state="collapsed")
+# --- 1. SOZLAMALAR ---
+st.set_page_config(page_title="Neon Karaoke Pro", layout="wide", initial_sidebar_state="collapsed")
+uz_tz = pytz.timezone('Asia/Tashkent')
 
-# Streamlitning o'zini menyularini yashiramiz, shunda faqat sizning HTML ko'rinadi
+# Streamlit interfeysini butunlay yashirish
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
-        .stApp {
-            background-color: black;
-            margin: 0;
-            padding: 0;
-        }
-        /* Fayl yuklash tugmasini markazga olamiz va chiroyli qilamiz */
-        [data-testid="stFileUploader"] {
+        .stApp { background-color: black; }
+        /* Uploader va tugmalarni yashirish, lekin ular orqada ishlaydi */
+        div[data-testid="stFileUploader"], div.stButton {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 999;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border: 2px solid #00e5ff;
-            border-radius: 15px;
-            width: 300px;
+            top: -100px;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# API Kalitni olish
-api_key = os.environ.get("GROQ_API_KEY")
-if "GROQ_API_KEY" in st.secrets:
-    api_key = st.secrets["GROQ_API_KEY"]
+@st.cache_resource
+def get_groq_client():
+    api_key = st.secrets.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY")
+    return Groq(api_key=api_key) if api_key else None
 
-client = Groq(api_key=api_key) if api_key else None
+client = get_groq_client()
 
-# 2. HTML Faylni o'qish funksiyasi
-def load_html(audio_data=None, json_data=None):
+# --- 2. HTML VA JS INYEKSIYA ---
+def load_and_inject_html(audio_b64=None, segments=None, is_loading=False):
     with open("index.html", "r", encoding="utf-8") as f:
-        html_content = f.read()
+        html = f.read()
 
-    # Agar ma'lumotlar tayyor bo'lsa, ularni HTML ichiga "inyeksiya" qilamiz
-    if audio_data and json_data:
-        # Python ma'lumotlarini JS o'zgaruvchilariga aylantiramiz
-        js_injection = f"""
-        <script>
-            // Python'dan kelgan ma'lumotlar
-            const B64_AUDIO = "data:audio/mp3;base64,{audio_data}";
-            const LYRICS_DATA = {json.dumps(json_data)};
+    # JavaScript orqali Streamlit bilan bog'lanish (Bridge)
+    bridge_script = f"""
+    <script>
+        // Sahifadagi "TANLASH" tugmasini Streamlit uploaderiga bog'lash
+        document.addEventListener('click', function(e) {{
+            if (e.target.classList.contains('upload-box') || e.target.closest('.upload-box')) {{
+                window.parent.document.querySelector('input[type="file"]').click();
+            }}
+            if (e.target.id === 'startBtn') {{
+                // Streamlit tugmasini bosish simulyatsiyasi
+                const buttons = window.parent.document.querySelectorAll('button');
+                buttons.forEach(btn => {{
+                    if(btn.innerText.includes('RUN_ANALYSIS')) btn.click();
+                }});
+            }}
+        }});
 
-            // Sahifa yuklangach, avtomatik Player oynasini ochamiz
-            window.addEventListener('load', function() {{
-                // Login va Upload oynalarini yashirish
-                document.querySelector('.login-page').classList.add('hidden');
+        // Python'dan ma'lumot kelsa, pleyerni ochish
+        const audioData = "{audio_b64 if audio_b64 else ''}";
+        const lyricsData = {json.dumps(segments) if segments else '[]'};
+        
+        if (audioData && lyricsData.length > 0) {{
+            window.addEventListener('load', () => {{
+                // Sahifalarni almashtirish
                 document.querySelector('.upload-page').classList.add('hidden');
-                
-                // Player oynasini ochish
                 const playerPage = document.querySelector('.player-page');
-                playerPage.classList.remove('hidden');
                 playerPage.classList.add('active');
-
-                // Musiqani yuklash
-                const audioPlayer = document.getElementById('audioPlayer');
-                audioPlayer.src = B64_AUDIO;
                 
-                // Matnlarni generatsiya qilish
-                const lyricsContainer = document.querySelector('.lyrics-container');
-                lyricsContainer.innerHTML = '';
+                // Audioni yuklash
+                const audio = document.getElementById('audioPlayer');
+                audio.src = "data:audio/mp3;base64," + audioData;
                 
-                LYRICS_DATA.forEach((line, i) => {{
+                // Matnlarni chiqarish
+                const container = document.querySelector('.lyrics-container');
+                container.innerHTML = '';
+                lyricsData.forEach((line, i) => {{
                     const div = document.createElement('div');
                     div.className = 'lyric-line';
-                    div.dataset.start = line.start;
-                    div.dataset.end = line.end;
+                    div.id = 'L-' + i;
                     div.innerHTML = `<div class="original">${{line.text}}</div>` + 
-                                    (line.tr ? `<div class="translation" style="font-size:14px; color:#888">${{line.tr}}</div>` : '');
-                    
-                    div.onclick = () => {{ audioPlayer.currentTime = line.start; audioPlayer.play(); }};
-                    lyricsContainer.appendChild(div);
+                                    (line.tr ? `<div class="translation">${{line.tr}}</div>` : '');
+                    div.onclick = () => {{ audio.currentTime = line.start; audio.play(); }};
+                    container.appendChild(div);
                 }});
 
-                // Vaqt bo'yicha yurish
-                audioPlayer.ontimeupdate = () => {{
-                    const t = audioPlayer.currentTime;
-                    document.querySelectorAll('.lyric-line').forEach(l => {{
-                        if (t >= l.dataset.start && t < l.dataset.end) {{
-                            document.querySelector('.active')?.classList.remove('active');
-                            l.classList.add('active');
-                            l.scrollIntoView({{behavior: 'smooth', block: 'center'}});
-                        }}
-                    }});
+                // Sinxronizatsiya
+                audio.ontimeupdate = () => {{
+                    let idx = lyricsData.findIndex(x => audio.currentTime >= x.start && audio.currentTime < x.end);
+                    document.querySelectorAll('.lyric-line').forEach(el => el.classList.remove('active'));
+                    if(idx !== -1) {{
+                        const activeEl = document.getElementById('L-' + idx);
+                        activeEl.classList.add('active');
+                        activeEl.scrollIntoView({{behavior:'smooth', block:'center'}});
+                    }}
                 }};
             }});
-        </script>
-        """
-        html_content = html_content.replace("</body>", js_injection + "</body>")
+        }}
+    </script>
+    """
+    return html.replace("</body>", bridge_script + "</body>")
+
+# --- 3. ASOSIY MANTIQ ---
+
+if 'status' not in st.session_state:
+    st.session_state.status = 'idle' # idle, processing, ready
+
+# Yashirin elementlar
+up = st.file_uploader("UPLOAD", type=['mp3', 'wav'], key="actual_uploader")
+# Bu tugma JS orqali bosiladi
+run_btn = st.button("RUN_ANALYSIS")
+
+if up:
+    # Fayl tanlanganda index.html dagi "fileName" ni yangilash uchun kichik hiyla
+    st.markdown(f"<script>window.parent.document.querySelector('.file-name').innerText = '{up.name}';</script>", unsafe_allow_html=True)
+
+if run_btn and up:
+    st.session_state.status = 'processing'
     
-    return html_content
+    with st.spinner(""): # Streamlit spinnerini yashirin saqlaymiz
+        try:
+            temp_path = f"temp_{time.time()}.mp3"
+            with open(temp_path, "wb") as f:
+                f.write(up.getbuffer())
+            
+            with open(temp_path, "rb") as f:
+                trans = client.audio.transcriptions.create(
+                    file=(temp_path, f.read()),
+                    model="whisper-large-v3-turbo",
+                    response_format="verbose_json",
+                )
+            
+            # Matnni bo'laklash (Basic Style)
+            all_words = []
+            for seg in trans.segments:
+                words = seg['text'].strip().split()
+                dur = (seg['end'] - seg['start']) / len(words) if words else 0
+                for i, w in enumerate(words):
+                    all_words.append({
+                        "text": w,
+                        "start": seg['start'] + (i * dur),
+                        "end": seg['start'] + ((i + 1) * dur)
+                    })
+            
+            # Tarjima va guruhlash
+            final_segments = []
+            translator = GoogleTranslator(source='auto', target='uz') # Standart o'zbekcha
+            
+            for i in range(0, len(all_words), 3):
+                chunk = all_words[i:i+3]
+                txt = " ".join([w['text'] for w in chunk])
+                tr = translator.translate(txt)
+                final_segments.append({
+                    "start": chunk[0]['start'],
+                    "end": chunk[-1]['end'],
+                    "text": txt,
+                    "tr": tr
+                })
+            
+            st.session_state.audio_b64 = base64.b64encode(up.getvalue()).decode()
+            st.session_state.segments = final_segments
+            st.session_state.status = 'ready'
+            os.remove(temp_path)
+            st.rerun()
+            
+        except Exception as e:
+            st.error(f"Xato: {e}")
 
-# --- ASOSIY MANTIQ ---
+# --- 4. EKRANGA CHIQARISH ---
 
-if 'data_ready' not in st.session_state:
-    st.session_state.data_ready = False
-    st.session_state.html = load_html() # Boshlanishiga toza HTML
-
-# Agar ma'lumot tayyor bo'lmasa, Streamlit uploaderini ko'rsatamiz
-if not st.session_state.data_ready:
-    # Ekranda faqat Streamlit uploaderi va HTML foni ko'rinadi
-    components.html(st.session_state.html, height=1000, scrolling=False)
-    
-    uploaded_file = st.file_uploader(" ", type=['mp3', 'wav'], label_visibility="collapsed")
-    lang = st.selectbox("Tilni tanlang:", ["🇺🇿 O'zbek", "🇷🇺 Rus", "🇬🇧 Ingliz", "Original"])
-    
-    if uploaded_file and st.button("🚀 BOSHLASH"):
-        if not client:
-            st.error("API kalit yo'q!")
-        else:
-            with st.spinner("AI tahlil qilmoqda..."):
-                # 1. Faylni vaqtincha saqlash
-                bytes_data = uploaded_file.getvalue()
-                with open("temp.mp3", "wb") as f: f.write(bytes_data)
-                
-                # 2. Groq
-                with open("temp.mp3", "rb") as file:
-                    trans = client.audio.transcriptions.create(
-                        file=("temp.mp3", file.read()),
-                        model="whisper-large-v3-turbo",
-                        response_format="verbose_json"
-                    )
-                
-                # 3. Qayta ishlash
-                segments = []
-                t_code = {"🇺🇿 O'zbek":"uz","🇷🇺 Rus":"ru","🇬🇧 Ingliz":"en"}.get(lang)
-                
-                for s in trans.segments:
-                    words = s['text'].split()
-                    dur = (s['end'] - s['start']) / len(words) if words else 0
-                    for i in range(0, len(words), 3):
-                        chunk = words[i:i+3]
-                        txt = " ".join(chunk)
-                        start = s['start'] + (i * dur)
-                        end = start + (len(chunk) * dur)
-                        tr = GoogleTranslator(source='auto', target=t_code).translate(txt) if t_code else None
-                        segments.append({"start": start, "end": end, "text": txt, "tr": tr})
-
-                # 4. Tayyor ma'lumotni HTML ichiga joylash
-                b64_audio = base64.b64encode(bytes_data).decode()
-                st.session_state.html = load_html(b64_audio, segments)
-                st.session_state.data_ready = True
-                st.rerun()
-
-# Agar ma'lumot tayyor bo'lsa, faqat HTML Player ko'rinadi
+if st.session_state.status == 'ready':
+    html_to_show = load_and_inject_html(st.session_state.audio_b64, st.session_state.segments)
 else:
-    components.html(st.session_state.html, height=1000, scrolling=False)
-    if st.button("🔄 Yangi fayl"):
-        st.session_state.data_ready = False
-        st.session_state.html = load_html()
-        st.rerun()
+    html_to_show = load_and_inject_html()
+
+components.html(html_to_show, height=1000, scrolling=False)
