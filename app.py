@@ -42,7 +42,7 @@ st.markdown("""
         text-align: center;
         text-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff;
         font-family: sans-serif;
-        margin-top: -50px !important;
+        margin-top: -40px !important;
         opacity: 0;
         
         /* --- MANA SHU IKKI QATORNI O'ZGARTIRASIZ --- */
@@ -297,5 +297,6 @@ if uploaded_file:
 
             except Exception as e:
                 st.error(f"Xatolik: {e}")
+
 
 
