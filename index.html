@@ -509,158 +509,84 @@
         </div>
     </div>
 
-    <script>
-        const uploadPage = document.getElementById('uploadPage');
-        const playerPage = document.getElementById('playerPage');
-        const fileInput = document.getElementById('fileInput');
-        const fileName = document.getElementById('fileName');
-        const startBtn = document.getElementById('startBtn');
-        const loading = document.getElementById('loading');
-        const backBtn = document.getElementById('backBtn');
-        const audioPlayer = document.getElementById('audioPlayer');
-        const lyricsContainer = document.getElementById('lyricsContainer');
-        const likeBtn = document.getElementById('likeBtn');
-        const dateTitle = document.getElementById('dateTitle');
+            <script>
+    // --- 1. ELEMENTLAR ---
+    const loginPage = document.querySelector('.login-page');
+    const uploadPage = document.querySelector('.upload-page');
+    const playerPage = document.querySelector('.player-page');
+    const startBtn = document.getElementById('startBtn');
+    const uploadBox = document.querySelector('.upload-box');
+    const fileName = document.getElementById('fileName');
+    const audioPlayer = document.getElementById('audioPlayer');
 
-        let currentFile = null;
+    // --- 2. STREAMLIT BILAN BOG'LANISH ---
+    // Fayl tanlash qutisi bosilganda yashirin Streamlit uploaderini bosish
+    uploadBox.addEventListener('click', function() {
+        window.parent.document.querySelector('input[type="file"]').click();
+    });
 
-        // Sample lyrics with timestamps (in seconds)
-        const sampleLyrics = [
-            { time: 0, text: "though, because she broke her leg playing squash and has to walk with" },
-            { time: 5, text: "a stick for a few weeks." },
-            { time: 8, text: "My little sister, Josie, is awful." },
-            { time: 12, text: "She loves school and studying and even homework." },
-            { time: 17, text: "She hates sweets and TV" },
-            { time: 20, text: "and playing outside." },
-            { time: 23, text: "She's always reading books" },
-            { time: 26, text: "and doing her assignments perfectly." },
-            { time: 30, text: "Mom and Dad think she's an angel" },
-            { time: 34, text: "but I know the truth about Josie." },
-            { time: 38, text: "She's sneaky and manipulative" },
-            { time: 42, text: "and always gets me in trouble." },
-            { time: 46, text: "One day I'll prove it to everyone." }
-        ];
-
-        // File input change
-        fileInput.addEventListener('change', function(e) {
-            if (this.files && this.files[0]) {
-                const file = this.files[0];
-                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                
-                if (fileSizeMB > 25) {
-                    alert('Fayl hajmi 25MB dan oshmasligi kerak!');
-                    this.value = '';
-                    fileName.classList.remove('show');
-                    currentFile = null;
-                    return;
-                }
-                
-                currentFile = file;
-                fileName.textContent = `✅ ${file.name} (${fileSizeMB} MB)`;
-                fileName.classList.add('show');
-            }
-        });
-
-        // Start analysis
-        startBtn.addEventListener('click', function() {
-            if (!currentFile) {
-                alert('Iltimos, avval audio fayl yuklang!');
-                return;
-            }
-            
-            // Show loading
-            loading.classList.add('show');
-            startBtn.disabled = true;
-            
-            // Simulate analysis (2 seconds)
-            setTimeout(() => {
-                loading.classList.remove('show');
-                startBtn.disabled = false;
-                showPlayer();
-            }, 2000);
-        });
-
-        // Show player page
-        function showPlayer() {
-            // Set current date
-            const now = new Date();
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            dateTitle.textContent = now.toLocaleDateString('en-US', options);
-            
-            // Load audio file
-            const url = URL.createObjectURL(currentFile);
-            audioPlayer.src = url;
-            
-            // Generate lyrics
-            generateLyrics();
-            
-            // Switch pages
-            uploadPage.classList.add('hidden');
-            playerPage.classList.add('active');
+    // "Tahlilni boshlash" bosilganda Python tugmasini bosish
+    startBtn.addEventListener('click', function() {
+        if (!fileName.classList.contains('show')) {
+            alert('Iltimos, avval fayl tanlang!');
+            return;
         }
+        // Streamlit'dagi yashirin "RUN_ANALYSIS" tugmasini bosish
+        const buttons = window.parent.document.querySelectorAll('button');
+        buttons.forEach(btn => {
+            if(btn.innerText.includes('RUN_ANALYSIS')) btn.click();
+        });
+        startBtn.innerText = "⏳ TAHLIL QILINMOQDA...";
+        startBtn.style.opacity = "0.5";
+    });
 
-        // Generate lyrics
-        function generateLyrics() {
-            lyricsContainer.innerHTML = '';
-            
-            sampleLyrics.forEach((lyric, index) => {
-                const div = document.createElement('div');
-                div.className = 'lyric-line';
-                div.dataset.time = lyric.time;
-                div.textContent = lyric.text;
-                lyricsContainer.appendChild(div);
-            });
-        }
+    // --- 3. PYTHON'DAN MA'LUMOT QABUL QILISH ---
+    // Bu funksiyani Python (app.py) tashqaridan chaqiradi
+    window.receiveData = function(audioB64, segments) {
+        // Login va yuklash sahifalarini yashirish
+        loginPage.classList.add('hidden');
+        uploadPage.classList.add('hidden');
+        playerPage.classList.add('active');
 
-        // Audio time update
-        audioPlayer.addEventListener('timeupdate', function() {
-            const currentTime = this.currentTime;
-            const lines = document.querySelectorAll('.lyric-line');
-            
-            lines.forEach((line, index) => {
-                const lineTime = parseFloat(line.dataset.time);
-                const nextLine = lines[index + 1];
-                const nextTime = nextLine ? parseFloat(nextLine.dataset.time) : Infinity;
-                
-                if (currentTime >= lineTime && currentTime < nextTime) {
-                    // Remove active from all
-                    lines.forEach(l => l.classList.remove('active'));
-                    // Add active to current
-                    line.classList.add('active');
-                    // Scroll to view
-                    line.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            });
+        // Musiqani yuklash
+        audioPlayer.src = "data:audio/mp3;base64," + audioB64;
+        
+        // Matnlarni pleyerga joylash
+        const lyricsContainer = document.querySelector('.lyrics-container');
+        lyricsContainer.innerHTML = '';
+
+        segments.forEach((line, i) => {
+            const div = document.createElement('div');
+            div.className = 'lyric-line';
+            div.id = 'L-' + i;
+            div.innerHTML = `
+                <div class="original">${line.text}</div>
+                ${line.tr ? `<div class="translation" style="color:#00e5ff; font-size:14px; opacity:0.7;">${line.tr}</div>` : ''}
+            `;
+            div.onclick = () => { audioPlayer.currentTime = line.start; audioPlayer.play(); };
+            lyricsContainer.appendChild(div);
         });
 
-        // Back button
-        backBtn.addEventListener('click', function() {
-            audioPlayer.pause();
-            audioPlayer.src = '';
-            playerPage.classList.remove('active');
-            uploadPage.classList.remove('hidden');
-        });
-
-        // Like button
-        let liked = false;
-        likeBtn.addEventListener('click', function() {
-            liked = !liked;
-            this.textContent = liked ? '❤️' : '♡';
-            this.style.color = liked ? '#ff0080' : '#fff';
-        });
-
-        // Delete button
-        document.getElementById('deleteBtn').addEventListener('click', function() {
-            if (confirm('Haqiqatan ham o\'chirmoqchimisiz?')) {
-                audioPlayer.pause();
-                audioPlayer.src = '';
-                currentFile = null;
-                fileInput.value = '';
-                fileName.classList.remove('show');
-                playerPage.classList.remove('active');
-                uploadPage.classList.remove('hidden');
+        // Vaqt bo'yicha sinxronizatsiya
+        audioPlayer.ontimeupdate = () => {
+            let idx = segments.findIndex(x => audioPlayer.currentTime >= x.start && audioPlayer.currentTime < x.end);
+            document.querySelectorAll('.lyric-line').forEach(el => el.classList.remove('active'));
+            if(idx !== -1) {
+                const el = document.getElementById('L-' + idx);
+                el.classList.add('active');
+                el.scrollIntoView({behavior: 'smooth', block: 'center'});
             }
-        });
-    </script>
+        };
+    };
+
+    // --- 4. SIZNING LOGIN VA BOSHQA EFFEKTLARINGIZ ---
+    // (Login tugmasi va boshqa vizual effektlar kodini o'zgartirmay saqlab qoling)
+    document.getElementById('loginBtn').addEventListener('click', () => {
+        loginPage.classList.add('hidden');
+        uploadPage.classList.remove('hidden');
+    });
+            </script>
+    
 </body>
+
 </html>
