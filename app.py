@@ -7,52 +7,36 @@ from groq import Groq
 # --- 1. SOZLAMALAR ---
 st.set_page_config(page_title="Neon Karaoke Pro", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. STEALTH MODE (Streamlitni butunlay yashirish) ---
+# --- 2. STEALTH MODE (Streamlitni yashirish) ---
 st.markdown("""
     <style>
-        /* 1. Menyu va Headerlarni yashirish */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-        
-        /* 2. Deploy va Status (Running) ikonkalari */
         .stDeployButton {display: none;}
         [data-testid="stStatusWidget"] {visibility: hidden;}
         [data-testid="stHeader"] {display: none;}
         [data-testid="stToolbar"] {display: none;}
-
-        /* 3. Tepadagi bo'shliqni yo'qotish (Full Screen hissi) */
+        
         .block-container {
             padding-top: 0rem !important;
             padding-bottom: 0rem !important;
             margin-top: 20px !important;
         }
-        
-        /* 4. Tepadagi rangli chiziqni (Decoration) yo'qotish */
-        div[data-testid="stDecoration"] {
-            display: none;
-        }
-
-        /* 5. Orqa fonni qora qilish */
-        .stApp {
-            background-color: #000000;
-            color: white;
-        }
+        div[data-testid="stDecoration"] { display: none; }
+        .stApp { background-color: #000000; color: white; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. NEON DIZAYN (Sizning uslubingiz) ---
+# --- 3. NEON DIZAYN ---
 st.markdown("""
 <style>
-    /* Sarlavhalar */
     h1, h2, h3, p {
         color: #fff !important;
         text-align: center;
         text-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff;
         font-family: sans-serif;
     }
-
-    /* Fayl yuklash qutisi */
     [data-testid="stFileUploader"] {
         background-color: #050505;
         border: 2px dashed #00e5ff;
@@ -64,8 +48,6 @@ st.markdown("""
     [data-testid="stFileUploader"] button {
         background-color: #000; color: #00e5ff; border: 1px solid #00e5ff;
     }
-
-    /* Tugmalar */
     .stButton > button {
         background: linear-gradient(45deg, #00e5ff, #00ff88);
         color: black !important;
@@ -81,14 +63,10 @@ st.markdown("""
         transform: scale(1.02);
         box-shadow: 0 0 25px #00ff88;
     }
-
-    /* Selectbox */
     [data-testid="stSelectbox"] label { color: #00e5ff !important; }
     div[data-baseweb="select"] > div {
         background-color: #111; border: 1px solid #00e5ff; color: white;
     }
-
-    /* Progress Bar */
     .stProgress > div > div > div > div {
         background-image: linear-gradient(to right, #00e5ff, #00ff88);
         box-shadow: 0 0 10px #00e5ff;
@@ -123,7 +101,7 @@ if uploaded_file:
                 progress_text = "Jarayon boshlanmoqda..."
                 my_bar = st.progress(0, text=progress_text)
 
-                # 1. Faylni saqlash
+                # 1. Yuklash
                 my_bar.progress(10, text="Fayl serverga yuklanmoqda...")
                 temp_path = f"temp_{int(time.time())}.mp3"
                 with open(temp_path, "wb") as f:
@@ -138,9 +116,8 @@ if uploaded_file:
                         response_format="verbose_json",
                     )
                 
-                # 3. So'zlarni ajratish
+                # 3. So'zlarni yig'ish
                 my_bar.progress(70, text="Gaplar ajratilmoqda...")
-                
                 all_words_with_time = []
                 for seg in trans.segments:
                     words = seg['text'].strip().split()
@@ -153,7 +130,7 @@ if uploaded_file:
                             "end": seg['start'] + ((i + 1) * dur)
                         })
                 
-                # 4. Katta harf bo'yicha gap tuzish
+                # 4. Katta harf mantiqi
                 final_lines = []
                 current_line_words = []
                 line_start_time = 0.0
@@ -204,12 +181,12 @@ if uploaded_file:
                 time.sleep(0.5)
                 my_bar.empty()
 
-                # 6. PLAYER HTML
+                # 6. PLAYER HTML (Avto-Skroll qo'shildi)
                 audio_b64 = base64.b64encode(uploaded_file.getvalue()).decode()
                 json_data = json.dumps(final_lines)
                 
                 player_html = f"""
-                <div style="background: #080808; border: 2px solid #00e5ff; border-radius: 20px; padding: 20px; box-shadow: 0 0 20px rgba(0,229,255,0.2); margin-top: 20px;">
+                <div id="main-player-box" style="background: #080808; border: 2px solid #00e5ff; border-radius: 20px; padding: 20px; box-shadow: 0 0 20px rgba(0,229,255,0.2); margin-top: 20px;">
                     <audio id="player" controls style="width: 100%; filter: invert(1); margin-bottom: 20px;">
                         <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
                     </audio>
@@ -221,6 +198,16 @@ if uploaded_file:
                     const container = document.getElementById('lyrics');
                     const audio = document.getElementById('player');
                     
+                    // --- AVTO SKROLL VA PLAYERGA YURISH ---
+                    // Sahifa yuklangandan keyin player markazga keladi
+                    setTimeout(() => {{
+                        const box = document.getElementById('main-player-box');
+                        if(box) {{
+                            box.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+                        }}
+                    }}, 500);
+
+                    // --- MATNLARNI CHIZISH ---
                     data.forEach((line, i) => {{
                         const div = document.createElement('div');
                         div.id = 'line-' + i;
@@ -239,6 +226,7 @@ if uploaded_file:
                         container.appendChild(div);
                     }});
 
+                    // --- VAQT BO'YICHA YURISH ---
                     audio.ontimeupdate = () => {{
                         const t = audio.currentTime;
                         let idx = data.findIndex(x => t >= x.start && t < x.end);
@@ -258,6 +246,8 @@ if uploaded_file:
                             active.style.transform = 'scale(1.02)';
                             active.children[0].style.color = '#00e5ff';
                             if(active.children[1]) active.children[1].style.color = '#00ffff';
+                            
+                            // Matn ichidagi avto-skroll
                             active.scrollIntoView({{behavior: 'smooth', block: 'center'}});
                         }}
                     }};
