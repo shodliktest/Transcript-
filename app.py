@@ -5,15 +5,46 @@ from deep_translator import GoogleTranslator
 from groq import Groq
 
 # --- 1. SOZLAMALAR ---
-st.set_page_config(page_title="Neon Karaoke Pro", layout="centered")
+st.set_page_config(page_title="Neon Karaoke Pro", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. DIZAYN (Neon Uslubi) ---
+# --- 2. STEALTH MODE (Streamlitni butunlay yashirish) ---
+st.markdown("""
+    <style>
+        /* 1. Menyu va Headerlarni yashirish */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        
+        /* 2. Deploy va Status (Running) ikonkalari */
+        .stDeployButton {display: none;}
+        [data-testid="stStatusWidget"] {visibility: hidden;}
+        [data-testid="stHeader"] {display: none;}
+        [data-testid="stToolbar"] {display: none;}
+
+        /* 3. Tepadagi bo'shliqni yo'qotish (Full Screen hissi) */
+        .block-container {
+            padding-top: 0rem !important;
+            padding-bottom: 0rem !important;
+            margin-top: 20px !important;
+        }
+        
+        /* 4. Tepadagi rangli chiziqni (Decoration) yo'qotish */
+        div[data-testid="stDecoration"] {
+            display: none;
+        }
+
+        /* 5. Orqa fonni qora qilish */
+        .stApp {
+            background-color: #000000;
+            color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 3. NEON DIZAYN (Sizning uslubingiz) ---
 st.markdown("""
 <style>
-    /* 1. Umumiy Fon */
-    .stApp { background-color: #000000; color: white; }
-
-    /* 2. Sarlavhalar */
+    /* Sarlavhalar */
     h1, h2, h3, p {
         color: #fff !important;
         text-align: center;
@@ -21,19 +52,20 @@ st.markdown("""
         font-family: sans-serif;
     }
 
-    /* 3. Fayl yuklash qutisi */
+    /* Fayl yuklash qutisi */
     [data-testid="stFileUploader"] {
         background-color: #050505;
         border: 2px dashed #00e5ff;
         border-radius: 20px;
         padding: 20px;
+        margin-top: 20px;
     }
     [data-testid="stFileUploader"] section > div { color: #00e5ff !important; }
     [data-testid="stFileUploader"] button {
         background-color: #000; color: #00e5ff; border: 1px solid #00e5ff;
     }
 
-    /* 4. Tugmalar */
+    /* Tugmalar */
     .stButton > button {
         background: linear-gradient(45deg, #00e5ff, #00ff88);
         color: black !important;
@@ -43,19 +75,20 @@ st.markdown("""
         height: 50px;
         font-size: 18px;
         box-shadow: 0 0 15px #00e5ff;
+        margin-top: 10px;
     }
     .stButton > button:hover {
         transform: scale(1.02);
         box-shadow: 0 0 25px #00ff88;
     }
 
-    /* 5. Selectbox */
+    /* Selectbox */
     [data-testid="stSelectbox"] label { color: #00e5ff !important; }
     div[data-baseweb="select"] > div {
         background-color: #111; border: 1px solid #00e5ff; color: white;
     }
 
-    /* 6. PROGRESS BAR (Slayder) dizayni */
+    /* Progress Bar */
     .stProgress > div > div > div > div {
         background-image: linear-gradient(to right, #00e5ff, #00ff88);
         box-shadow: 0 0 10px #00e5ff;
@@ -67,7 +100,7 @@ st.markdown("""
 api_key = st.secrets.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY")
 client = Groq(api_key=api_key) if api_key else None
 
-# --- 3. INTERFEYS ---
+# --- 4. INTERFEYS ---
 
 st.title("🎧 NEON KARAOKE PRO")
 st.markdown("<p style='margin-bottom: 30px; opacity: 0.7;'>AI Smart Synchronization</p>", unsafe_allow_html=True)
@@ -76,7 +109,6 @@ uploaded_file = st.file_uploader("Musiqani tanlang (MP3/WAV)", type=['mp3', 'wav
 
 col1, col2 = st.columns([2, 1])
 with col1:
-    # "Original" - Default holatda
     lang = st.selectbox("Tarjima tili:", ["📄 Original", "🇺🇿 O'zbek", "🇷🇺 Rus", "🇬🇧 Ingliz"])
 with col2:
     st.write("") 
@@ -88,17 +120,16 @@ if uploaded_file:
             st.error("API kalit topilmadi!")
         else:
             try:
-                # PROGRESS BAR yaratamiz
                 progress_text = "Jarayon boshlanmoqda..."
                 my_bar = st.progress(0, text=progress_text)
 
-                # 1. Faylni saqlash (10%)
+                # 1. Faylni saqlash
                 my_bar.progress(10, text="Fayl serverga yuklanmoqda...")
                 temp_path = f"temp_{int(time.time())}.mp3"
                 with open(temp_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
                 
-                # 2. Transkripsiya (40%)
+                # 2. Transkripsiya
                 my_bar.progress(40, text="Sun'iy intellekt eshitmoqda...")
                 with open(temp_path, "rb") as file:
                     trans = client.audio.transcriptions.create(
@@ -107,8 +138,8 @@ if uploaded_file:
                         response_format="verbose_json",
                     )
                 
-                # 3. So'zlarni qayta ishlash (70%)
-                my_bar.progress(70, text="Matnlar va vaqtlar ajratilmoqda...")
+                # 3. So'zlarni ajratish
+                my_bar.progress(70, text="Gaplar ajratilmoqda...")
                 
                 all_words_with_time = []
                 for seg in trans.segments:
@@ -134,12 +165,9 @@ if uploaded_file:
                     word = item['text']
                     clean_word = word.strip().replace('"', '').replace('(', '')
                     
-                    # MANTIQ: Agar so'z Katta harf bo'lsa -> Yangi qator
                     if i > 0 and clean_word and clean_word[0].isupper():
-                        # Eski qatorni yopish
                         full_text = " ".join([w['text'] for w in current_line_words])
                         
-                        # Tarjima qilish
                         t_code = {"📄 Original": None, "🇺🇿 O'zbek":"uz","🇷🇺 Rus":"ru","🇬🇧 Ingliz":"en"}.get(lang)
                         tr = None
                         if t_code:
@@ -154,13 +182,11 @@ if uploaded_file:
                             "tr": tr
                         })
                         
-                        # Yangi qatorni boshlash
                         current_line_words = [item]
                         line_start_time = item['start']
                     else:
                         current_line_words.append(item)
                 
-                # Oxirgi qatorni qo'shish
                 if current_line_words:
                     full_text = " ".join([w['text'] for w in current_line_words])
                     t_code = {"📄 Original": None, "🇺🇿 O'zbek":"uz","🇷🇺 Rus":"ru","🇬🇧 Ingliz":"en"}.get(lang)
@@ -173,10 +199,10 @@ if uploaded_file:
                         "tr": tr
                     })
 
-                # 5. Tayyor (100%)
+                # 5. Tayyor
                 my_bar.progress(100, text="Tayyor!")
-                time.sleep(0.5) # Odam ko'zi ilgarishi uchun ozgina pauza
-                my_bar.empty() # Bar'ni yashirish
+                time.sleep(0.5)
+                my_bar.empty()
 
                 # 6. PLAYER HTML
                 audio_b64 = base64.b64encode(uploaded_file.getvalue()).decode()
@@ -206,7 +232,6 @@ if uploaded_file:
                         div.style.cursor = 'pointer';
                         div.style.transition = 'all 0.3s';
                         
-                        // Matnlar
                         div.innerHTML = `<div style="font-size: 20px; color: #fff; font-weight: 500;">${{line.text}}</div>` + 
                                         (line.tr ? `<div style="font-size: 16px; color: #888; margin-top: 5px; font-style: italic;">${{line.tr}}</div>` : '');
                         
@@ -244,3 +269,4 @@ if uploaded_file:
 
             except Exception as e:
                 st.error(f"Xatolik: {e}")
+                    
