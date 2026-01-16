@@ -80,8 +80,7 @@ client = Groq(api_key=api_key) if api_key else None
 
 # --- 4. INTERFEYS ---
 
-st.title(" 🛫 SHodlik AI PRO 🛬")
-st.markdown("<p style='margin-bottom: 30px; opacity: 0.7;'>AI Smart Synchronization</p>", unsafe_allow_html=True)
+st.title("🎧 Neon Script Pro")
 
 uploaded_file = st.file_uploader("Musiqani tanlang (MP3/WAV)", type=['mp3', 'wav'])
 
@@ -261,3 +260,4 @@ if uploaded_file:
                 st.error(f"Xatolik: {e}")
 
                 
+
