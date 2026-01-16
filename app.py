@@ -7,7 +7,7 @@ from groq import Groq
 # --- 1. SOZLAMALAR ---
 st.set_page_config(page_title="Neon Karaoke Pro", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. STEALTH MODE (Streamlitni yashirish) ---
+# --- 2. STEALTH MODE (Streamlitni yashirish va Sahifani ko'tarish) ---
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -21,7 +21,7 @@ st.markdown("""
         .block-container {
             padding-top: 0rem !important;
             padding-bottom: 0rem !important;
-            margin-top: 20px !important;
+            margin-top: 0px !important;
         }
         div[data-testid="stDecoration"] { display: none; }
         .stApp { background-color: #000000; color: white; }
@@ -31,7 +31,23 @@ st.markdown("""
 # --- 3. NEON DIZAYN ---
 st.markdown("""
 <style>
-    h1, h2, h3, p {
+    /* Sarlavha uchun animatsiya va joylashuv */
+    @keyframes fadeIn {
+        0% { opacity: 0; transform: translateY(-20px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    
+    h1 {
+        color: #fff !important;
+        text-align: center;
+        text-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff;
+        font-family: sans-serif;
+        margin-top: -60px !important; /* Sahifani yuqoriga ko'tarish */
+        opacity: 0; /* Boshida ko'rinmas */
+        animation: fadeIn 1.5s ease-out 0.5s forwards; /* 0.5 soniya kechikyapti va sekin paydo bo'lyapti */
+    }
+
+    h2, h3, p {
         color: #fff !important;
         text-align: center;
         text-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff;
@@ -42,7 +58,7 @@ st.markdown("""
         border: 2px dashed #00e5ff;
         border-radius: 20px;
         padding: 20px;
-        margin-top: 20px;
+        margin-top: 10px;
     }
     [data-testid="stFileUploader"] section > div { color: #00e5ff !important; }
     [data-testid="stFileUploader"] button {
@@ -83,6 +99,26 @@ client = Groq(api_key=api_key) if api_key else None
 st.title("🎧 Neon Script Pro")
 
 uploaded_file = st.file_uploader("Musiqani tanlang (MP3/WAV)", type=['mp3', 'wav'])
+
+# --- YANGI QO'SHILGAN QISM: AUDIO NOMI NEON BO'LIB YONADI ---
+if uploaded_file:
+    st.markdown(f"""
+    <div style="text-align: center; margin-top: 5px; margin-bottom: 15px; animation: fadeIn 1s;">
+        <span style="
+            font-size: 18px; 
+            color: #00ff88; 
+            text-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88; 
+            font-weight: bold; 
+            border: 1px solid #00ff88; 
+            padding: 8px 20px; 
+            border-radius: 50px; 
+            background: rgba(0, 255, 136, 0.05);
+            box-shadow: 0 0 15px #00ff88 inset;">
+            🎵 {uploaded_file.name}
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+# -----------------------------------------------------------
 
 col1, col2 = st.columns([2, 1])
 with col1:
@@ -258,7 +294,3 @@ if uploaded_file:
 
             except Exception as e:
                 st.error(f"Xatolik: {e}")
-
-                
-
-
