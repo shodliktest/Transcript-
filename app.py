@@ -301,6 +301,8 @@ if uploaded_file:
 
 
 
+    
+st.caption("© Shodlik (Otavaliyev_M)")
 
 
 
